@@ -7,6 +7,12 @@ from typing import Optional, Pattern, Union
 import click
 
 from storage_tools import __version__
+from storage_tools.analyzer import (
+    FolderAnalysisOptions,
+    FolderAnalyzer,
+    format_analysis_output,
+    format_directory_analysis,
+)
 from storage_tools.large_files import (
     GroupBy,
     LargeFileFinder,
@@ -26,9 +32,121 @@ def main(ctx: click.Context) -> None:
 
 
 @main.command()
-def analyze() -> None:
-    """Analyze folder disk usage and statistics."""
-    click.echo("Folder analysis feature - Coming soon!")
+@click.argument("path", type=click.Path(exists=True), default=".")
+@click.option(
+    "--depth",
+    type=int,
+    default=None,
+    help="Maximum directory depth to traverse",
+)
+@click.option(
+    "--sort-by",
+    type=click.Choice(["size", "name", "count"], case_sensitive=False),
+    default="size",
+    help="Sort criterion for results (default: size)",
+)
+@click.option(
+    "--exclude",
+    multiple=True,
+    help="Exclude patterns (glob style). Can be specified multiple times.",
+)
+@click.option(
+    "--follow-symlinks",
+    is_flag=True,
+    help="Follow symbolic links",
+)
+@click.option(
+    "--include-hidden",
+    is_flag=True,
+    help="Include hidden files and directories",
+)
+@click.option(
+    "--by-directory",
+    is_flag=True,
+    help="Show analysis broken down by directory",
+)
+@click.option(
+    "--top",
+    "-n",
+    type=int,
+    default=10,
+    help="Number of largest files to show in summary (default: 10)",
+)
+@click.option(
+    "--no-extensions",
+    is_flag=True,
+    help="Don't show file type distribution",
+)
+@click.option(
+    "--no-largest",
+    is_flag=True,
+    help="Don't show largest files",
+)
+def analyze(
+    path: str,
+    depth: Optional[int],
+    sort_by: str,
+    exclude: tuple[str, ...],
+    follow_symlinks: bool,
+    include_hidden: bool,
+    by_directory: bool,
+    top: int,
+    no_extensions: bool,
+    no_largest: bool,
+) -> None:
+    """Analyze folder disk usage and statistics in PATH (default: current directory)."""
+    try:
+        # Convert exclude patterns to list
+        exclude_patterns: Optional[list[Union[str, Pattern[str]]]] = (
+            list(exclude) if exclude else None
+        )
+
+        # Create options
+        options = FolderAnalysisOptions(
+            follow_symlinks=follow_symlinks,
+            include_hidden=include_hidden,
+            exclude_patterns=exclude_patterns,
+            max_depth=depth,
+            track_largest_n=top,
+            sort_by=sort_by.lower(),
+        )
+
+        # Create analyzer
+        analyzer = FolderAnalyzer(options)
+        search_path = Path(path).resolve()
+
+        click.echo(f"Analyzing folder: {search_path}")
+        if depth is not None:
+            click.echo(f"Maximum depth: {depth}")
+        if exclude:
+            click.echo(f"Excluding: {', '.join(exclude)}")
+        click.echo("")
+
+        if by_directory:
+            # Directory-by-directory analysis
+            dir_stats = analyzer.analyze_by_directory(search_path)
+            output = format_directory_analysis(dir_stats, search_path, sort_by.lower())
+            click.echo(output)
+        else:
+            # Overall analysis
+            stats = analyzer.analyze(search_path)
+            output = format_analysis_output(
+                stats, show_extensions=not no_extensions, show_largest=not no_largest
+            )
+            click.echo(output)
+
+    except FileNotFoundError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise click.Abort()
+    except NotADirectoryError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise click.Abort()
+    except KeyboardInterrupt:
+        click.echo("\n\nAnalysis interrupted by user.", err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"Unexpected error: {e}", err=True)
+        raise click.Abort()
 
 
 @main.command()
