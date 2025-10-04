@@ -25,11 +25,49 @@ def test_version() -> None:
 
 
 def test_analyze_command() -> None:
-    """Test the analyze command."""
+    """Test the analyze command with temp directory."""
     runner = CliRunner()
-    result = runner.invoke(main, ["analyze"])
-    assert result.exit_code == 0
-    assert "Coming soon" in result.output
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        # Create some test files
+        tmp_path = Path(tmpdir)
+        (tmp_path / "file1.txt").write_text("a" * 100)
+        (tmp_path / "file2.txt").write_text("b" * 1000)
+
+        result = runner.invoke(main, ["analyze", str(tmp_path)])
+        assert result.exit_code == 0
+        assert "Analyzing folder" in result.output
+        assert "FOLDER ANALYSIS SUMMARY" in result.output
+
+
+def test_analyze_with_options() -> None:
+    """Test analyze command with various options."""
+    runner = CliRunner()
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
+        (tmp_path / "file1.txt").write_text("a" * 1000)
+        (tmp_path / "file2.pdf").write_text("b" * 2000)
+
+        # Test with --top option
+        result = runner.invoke(main, ["analyze", str(tmp_path), "--top", "5"])
+        assert result.exit_code == 0
+
+        # Test with --depth option
+        result = runner.invoke(main, ["analyze", str(tmp_path), "--depth", "1"])
+        assert result.exit_code == 0
+
+        # Test with --by-directory option
+        result = runner.invoke(main, ["analyze", str(tmp_path), "--by-directory"])
+        assert result.exit_code == 0
+        assert "DIRECTORY ANALYSIS" in result.output
+
+
+def test_analyze_nonexistent_path() -> None:
+    """Test that analyze handles nonexistent path."""
+    runner = CliRunner()
+    result = runner.invoke(main, ["analyze", "/nonexistent/path/xyz123"])
+    assert result.exit_code != 0
 
 
 def test_find_duplicates_command() -> None:
