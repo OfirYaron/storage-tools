@@ -3,6 +3,7 @@
 import tempfile
 from datetime import datetime
 from pathlib import Path
+from typing import Generator
 
 import pytest
 
@@ -84,7 +85,7 @@ class TestFolderAnalyzer:
     """Tests for FolderAnalyzer class."""
 
     @pytest.fixture
-    def temp_dir(self) -> Path:
+    def temp_dir(self) -> Generator[Path, None, None]:
         """Create a temporary directory with test files."""
         with tempfile.TemporaryDirectory() as tmpdir:
             tmp_path = Path(tmpdir)

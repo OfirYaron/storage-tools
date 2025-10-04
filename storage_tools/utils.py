@@ -3,7 +3,7 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterator, Optional, Pattern, Union
+from typing import Iterator, Optional, Pattern, Sequence, Union
 
 
 def format_size(size_bytes: int, decimal_places: int = 2) -> str:
@@ -120,7 +120,7 @@ def normalize_path(path: Union[str, Path]) -> Path:
 
 def should_exclude_path(
     path: Path,
-    exclude_patterns: Optional[list[Union[str, Pattern[str]]]] = None,
+    exclude_patterns: Optional[Sequence[Union[str, Pattern[str]]]] = None,
     include_hidden: bool = False,
 ) -> bool:
     """
