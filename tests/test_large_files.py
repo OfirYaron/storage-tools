@@ -236,8 +236,11 @@ class TestLargeFileFinder:
 
         # Should have groups for main dir and subdir
         assert len(results) == 2
-        assert any(str(temp_dir) in key for key in results.keys())
-        assert any("subdir" in key for key in results.keys())
+        # Convert keys to Path objects and resolve for cross-platform comparison
+        # (handles symlinks like /var -> /private/var on macOS, and path separators on Windows)
+        result_paths = {Path(key).resolve() for key in results.keys()}
+        assert temp_dir.resolve() in result_paths
+        assert (temp_dir / "subdir").resolve() in result_paths
 
     def test_find_nonexistent_path(self) -> None:
         """Test finding in nonexistent path raises error."""
