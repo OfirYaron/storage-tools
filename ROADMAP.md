@@ -76,7 +76,113 @@ storage-tools analyze <path> [options]
 
 ---
 
-### 2. Duplicate Files Search
+### 2. Tree Analysis (Hierarchical Folder Visualization)
+
+**Goal**: Provide a tree-structured visualization of folder hierarchy with size information, offering an intuitive way to understand storage distribution at a glance.
+
+#### Implementation Plan
+
+**Phase 1: Basic Tree Structure**
+- Display folder structure in tree format (similar to `tree` command)
+- Show size for each folder and file
+- Default depth of 3 levels
+- ASCII-based tree drawing with proper indentation and connectors
+- Collapsible/expandable representation
+
+**Phase 2: Enhanced Tree Features**
+- Sort folders by size within tree structure
+- Show file counts per directory
+- Percentage of total size for each folder
+- Color-coding by size thresholds (green/yellow/red)
+- Option to show only folders (no files)
+- Option to show only items above size threshold
+
+**Phase 3: Interactive Tree**
+- Interactive mode to expand/collapse branches
+- Drill-down capability
+- Search/filter within tree
+- Export tree structure to file
+- Multiple tree styles (ASCII, Unicode box-drawing, minimal)
+
+#### Technical Considerations
+
+**Efficiency:**
+- Use depth-first traversal for natural tree building
+- Calculate sizes during traversal (single pass)
+- Cache folder sizes for re-rendering
+- Limit tree width to terminal size
+- Lazy loading for very large directories
+- Prune small folders below threshold to reduce clutter
+- Consider memory for tree structure (vs. streaming in flat analysis)
+
+**Reusability:**
+- Create `storage_tools/tree_analysis.py` module
+- Classes:
+  - `TreeNode`: Represent folder/file in tree
+  - `TreeBuilder`: Construct tree structure from filesystem
+  - `TreeRenderer`: Render tree to terminal with formatting
+  - `TreeStats`: Aggregate statistics per node
+- Reuse `FolderAnalyzer` for size calculations
+- Share size formatting with flat analysis
+- Make tree styles pluggable (ASCII vs. Unicode)
+
+**Caveats:**
+- Very wide trees (many siblings) may not fit in terminal
+- Deep nesting may become hard to read
+- Large directories with many files can overwhelm display
+- Symbolic links create complexity (avoid cycles)
+- File names with special characters need escaping
+- Right-to-left languages may cause rendering issues
+- Terminal width detection may fail in some environments
+- Color support varies by terminal
+- Long file/folder names need truncation strategy
+- Hidden files handling (show/hide toggle)
+- Different sorting may change tree appearance significantly
+
+**Differences from Flat Analysis:**
+- Tree shows hierarchical relationships (flat is list-based)
+- Tree is more intuitive for understanding folder structure
+- Flat analysis better for sorting and filtering across all levels
+- Tree has depth/width constraints, flat can show unlimited items
+- Tree better for "where is the space used" questions
+- Flat better for "what are the largest items" questions
+- Both complement each other for comprehensive analysis
+
+**CLI Interface:**
+```bash
+storage-tools tree <path> [options]
+  --depth N                 # Tree depth (default: 3)
+  --sort-by {size,name}     # Sort order within each level
+  --min-size SIZE           # Show only items above size
+  --folders-only            # Show only folders
+  --style {ascii,unicode,minimal}  # Tree drawing style
+  --no-color                # Disable color output
+  --max-width N             # Maximum tree width
+  --show-hidden             # Include hidden files
+  --exclude PATTERN         # Exclude patterns (glob)
+  --show-percentages        # Show % of total size
+  --show-counts             # Show file counts per folder
+```
+
+**Example Output:**
+```
+📁 /Users/user/projects (1.2 GB, 100%)
+├── 📁 project-a (800 MB, 66.7%)
+│   ├── 📁 node_modules (600 MB, 50%)
+│   │   └── ...
+│   ├── 📁 dist (150 MB, 12.5%)
+│   │   └── ...
+│   └── 📁 src (50 MB, 4.2%)
+│       └── ...
+├── 📁 project-b (350 MB, 29.2%)
+│   ├── 📁 venv (300 MB, 25%)
+│   └── 📁 data (50 MB, 4.2%)
+└── 📄 notes.txt (50 MB, 4.2%)
+```
+
+---
+
+### 3. Duplicate Files Search
 
 **Goal**: Identify duplicate files based on content to reclaim storage space.
 
@@ -154,7 +260,7 @@ storage-tools find-duplicates <path> [options]
 
 ---
 
-### 3. Duplicate Folders Search
+### 4. Duplicate Folders Search
 
 **Goal**: Find folders with identical or highly similar content.
 
@@ -232,7 +338,7 @@ storage-tools find-duplicate-folders <path> [options]
 
 ---
 
-### 4. Large Files Search
+### 5. Large Files Search
 
 **Goal**: Quickly identify the largest files consuming disk space.
 
@@ -311,31 +417,31 @@ storage-tools find-large-files <path> [options]
 
 ## Future Features (Backlog)
 
-### 5. File Organization Suggestions
+### 6. File Organization Suggestions
 - Suggest reorganization based on file types
 - Identify misplaced files (e.g., large files in unexpected locations)
 - Detect unmoved downloads, desktop clutter
 - Suggest archival candidates (old, large, unaccessed files)
 
-### 6. Storage Cleanup Recommendations
+### 7. Storage Cleanup Recommendations
 - Find old temporary files
 - Locate cache directories safe to clear
 - Identify old log files
 - Find incomplete downloads
 - Detect package manager caches (npm, pip, brew, etc.)
 
-### 7. Storage Monitoring
+### 8. Storage Monitoring
 - Track storage usage over time
 - Alert on rapid growth
 - Monitor specific directories
 - Generate usage reports
 
-### 8. Smart Compression
+### 9. Smart Compression
 - Identify files/folders good candidates for compression
 - Batch compression operations
 - Track compression savings
 
-### 9. Backup Verification
+### 10. Backup Verification
 - Compare backup folders with source
 - Detect incomplete backups
 - Verify backup integrity
@@ -386,16 +492,18 @@ storage-tools find-large-files <path> [options]
 - ✅ Basic CLI structure
 
 ### Phase 2: Core Features (Priority 1)
-1. Implement folder analysis (basic)
-2. Implement large files search
+1. ✅ Implement folder analysis (basic + advanced)
+2. ✅ Implement large files search
 3. Implement duplicate files search (basic)
-4. Add comprehensive tests for each
+4. Implement tree analysis (basic)
+5. Add comprehensive tests for each
 
 ### Phase 3: Enhancement (Priority 2)
-1. Enhance duplicate detection (optimization)
-2. Add duplicate folders search
-3. Add advanced filtering options
-4. Improve performance with parallelization
+1. Enhance tree visualization (colors, styles)
+2. Enhance duplicate detection (optimization)
+3. Add duplicate folders search
+4. Add advanced filtering options
+5. Improve performance with parallelization
 
 ### Phase 4: User Experience (Priority 3)
 1. Interactive modes
